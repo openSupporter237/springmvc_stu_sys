@@ -16,7 +16,7 @@ public class StuDaoImpl extends BaseDaoImpl implements StuDao{
 		Session session=null;
 		try {
 			session=getSession();
-			List<Student> list =(List<Student>)session.createQuery("from Student order by sid desc").setFirstResult(offset).setMaxResults(size).list();
+			List<Student> list =(List<Student>)session.createQuery("from Student order by desc").setFirstResult(offset).setMaxResults(size).list();
 			return list;
 		} catch (Exception e) {
 			e.printStackTrace();
