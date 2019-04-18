@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:c="http://www.springframework.org/schema/c"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.3.xsd">
+	<context:component-scan base-package="dao"></context:component-scan>
+	
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"
+		destroy-method="close"><!-- 设置为close使Spring容器关闭同时数据源能够正常关闭，以免造成连接泄露 -->
+		<property name="driverClassName" value="com.mysql.jdbc.Driver" />
+		<property name="url" value="jdbc:mysql://localhost:3306/stu"></property>
+		<property name="username" value="root"></property>
+		<property name="password" value="root"></property>
+		<property name="defaultReadOnly" value="false" /><!-- 设置为只读状态，配置读写分离时，读库可以设置为true 
+			在连接池创建后，会初始化并维护一定数量的数据库安连接，当请求过多时，数据库会动态增加连接数， 当请求过少时，连接池会减少连接数至一个最小空闲值 -->
+		<property name="initialSize" value="5" /><!-- 在启动连接池初始创建的数据库连接，默认为0 -->
+		<property name="maxActive" value="15" /><!-- 设置数据库同一时间的最大活跃连接默认为8，负数表示不闲置 -->
+		<property name="maxIdle" value="10" /><!-- 在连接池空闲时的最大连接数，超过的会被释放，默认为8，负数表示不闲置 -->
+		<property name="minIdle" value="2" /><!-- 空闲时的最小连接数，低于这个数量会创建新连接，默认为0 -->
+		<property name="maxWait" value="10000" /><!-- 连接被用完时等待归还的最大等待时间，单位毫秒，超出时间抛异常，默认为无限等待 -->
+	</bean>
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">
+					org.hibernate.dialect.MySQL5Dialect
+				</prop>
+				<prop key="javax.persistence.validation.mode">auto</prop>
+				<!-- 必要时在数据库新建所有表格 -->
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<!-- 用更漂亮的格式显示sql语句 -->
+				<prop key="hibernate.format_sql">true</prop>
+			</props>
+		</property>
+		<property name="packagesToScan" value="domain" />
+	</bean>
+	<!-- =========================配置事务管理============================= -->
+	<bean id="defaultTransactionManager"
+		class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+	<!-- 使用annotation定义事务  -->
+	<!-- <tx:annotation-driven transaction-manager="defaultTransactionManager"
+		proxy-target-class="true" /> -->
+	<!--使用aop定义事务  -->
+	<!-- 定义事务通知 -->
+	<tx:advice id="txAdvice" transaction-manager="defaultTransactionManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED"/>
+		</tx:attributes>
+	</tx:advice>
+	<!-- 定义aop的切面 -->
+	<aop:config>
+		<aop:pointcut id="pointcut" expression="execution(* dao.*.*(..))" />
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="pointcut" />
+	</aop:config> 
+</beans>
